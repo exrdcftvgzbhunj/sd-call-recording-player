@@ -1,0 +1,12 @@
+{
+  "name": "call-recording-player",
+  "version": "1.0.0",
+  "description": "Advanced call recording player with transcript synchronization for WeWeb",
+  "scripts": {
+    "build": "weweb build",
+    "serve": "weweb serve"
+  },
+  "devDependencies": {
+    "@weweb/cli": "latest"
+  }
+}
