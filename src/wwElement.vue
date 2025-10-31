@@ -86,38 +86,40 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div v-if="transcriptVisible" class="transcript-panel" :style="cardStyle">
-      <h3 class="transcript-title" :style="{ color: content?.primaryTextColor }">
-        {{ content?.transcriptTitle || 'Call Transcript' }}
-      </h3>
-      <div class="transcript-list" ref="transcriptListRef">
-        <div
-          v-for="(line, index) in processedTranscript"
-          :key="index"
-          class="transcript-item"
-          :class="{ active: currentLineIndex === index }"
-          @click="handleTranscriptClick(line, index)"
-        >
+      <!-- Transcript Panel - Now inside the same card -->
+      <div v-if="transcriptVisible" class="transcript-section">
+        <div class="transcript-divider"></div>
+        <h3 class="transcript-title" :style="{ color: content?.primaryTextColor }">
+          {{ content?.transcriptTitle || 'Call Transcript' }}
+        </h3>
+        <div class="transcript-list" ref="transcriptListRef">
           <div
-            class="speaker-line"
-            :style="{ backgroundColor: line.color }"
-          ></div>
-          <div class="transcript-text-container">
-            <div class="transcript-time" :style="{ color: content?.secondaryTextColor }">
-              {{ line.formattedTime }}
+            v-for="(line, index) in processedTranscript"
+            :key="index"
+            class="transcript-item"
+            :class="{ active: currentLineIndex === index }"
+            @click="handleTranscriptClick(line, index)"
+          >
+            <div
+              class="speaker-line"
+              :style="{ backgroundColor: line.color }"
+            ></div>
+            <div class="transcript-text-container">
+              <div class="transcript-time" :style="{ color: content?.secondaryTextColor }">
+                {{ line.formattedTime }}
+              </div>
+              <p class="transcript-text" :style="{ color: content?.primaryTextColor }">
+                {{ line.text }}
+              </p>
             </div>
-            <p class="transcript-text" :style="{ color: content?.primaryTextColor }">
-              {{ line.text }}
-            </p>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div v-if="content?.jumpToLineHint && transcriptVisible" class="info-text" :style="{ color: content?.secondaryTextColor }">
-      {{ content.jumpToLineHint }}
+        <div v-if="content?.jumpToLineHint" class="info-text" :style="{ color: content?.secondaryTextColor }">
+          {{ content.jumpToLineHint }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -264,6 +266,10 @@ export default {
       '--progress-bg': props.content?.progressBarBackground || '#e5e7eb',
       backgroundColor: props.content?.cardBackgroundColor || '#ffffff',
       borderRadius: props.content?.cardBorderRadius || '8px',
+      borderWidth: props.content?.cardBorderWidth || '1px',
+      borderStyle: props.content?.cardBorderStyle || 'solid',
+      borderColor: props.content?.cardBorderColor || '#e5e7eb',
+      boxShadow: props.content?.cardShadow || '0 1px 3px rgba(0,0,0,0.1)',
     }));
 
     const progressPercent = computed(() => {
@@ -485,6 +491,10 @@ export default {
       props.content?.backgroundColor,
       props.content?.cardBackgroundColor,
       props.content?.cardBorderRadius,
+      props.content?.cardBorderWidth,
+      props.content?.cardBorderColor,
+      props.content?.cardBorderStyle,
+      props.content?.cardShadow,
       props.content?.primaryTextColor,
       props.content?.secondaryTextColor,
       props.content?.playButtonColor,
@@ -554,10 +564,8 @@ export default {
 .card {
   background: var(--card-background, white);
   border-radius: var(--border-radius, 8px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
   padding: 24px;
-  margin-bottom: 16px;
+  // Border and shadow now controlled by inline styles via cardStyle
 }
 
 .alert {
@@ -747,13 +755,15 @@ export default {
   flex-shrink: 0;
 }
 
-.transcript-panel {
-  background: var(--card-background, white);
-  border-radius: var(--border-radius, 8px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-  padding: 24px;
-  margin-bottom: 16px;
+// Transcript section - now inside the same card
+.transcript-section {
+  margin-top: 24px;
+}
+
+.transcript-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #e5e7eb 20%, #e5e7eb 80%, transparent 100%);
+  margin-bottom: 24px;
 }
 
 .transcript-title {
@@ -846,8 +856,7 @@ export default {
     padding: 12px;
   }
 
-  .card,
-  .transcript-panel {
+  .card {
     padding: 16px;
   }
 

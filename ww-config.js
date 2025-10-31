@@ -378,6 +378,72 @@ export default {
       defaultValue: "#e5e7eb",
       bindable: true,
     },
+
+    // Border Properties
+    cardBorderWidth: {
+      label: { en: "Border Width", de: "Rahmenbreite" },
+      type: "Length",
+      section: "style",
+      defaultValue: "1px",
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Border width (e.g., 1px, 2px, 0px for no border)"
+      }
+      /* wwEditor:end */
+    },
+
+    cardBorderColor: {
+      label: { en: "Border Color", de: "Rahmenfarbe" },
+      type: "Color",
+      section: "style",
+      defaultValue: "#e5e7eb",
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Color of the card border"
+      }
+      /* wwEditor:end */
+    },
+
+    cardBorderStyle: {
+      label: { en: "Border Style", de: "Rahmenstil" },
+      type: "TextSelect",
+      section: "style",
+      options: {
+        options: [
+          { value: "solid", label: "Solid" },
+          { value: "dashed", label: "Dashed" },
+          { value: "dotted", label: "Dotted" },
+          { value: "double", label: "Double" },
+          { value: "none", label: "None" }
+        ]
+      },
+      defaultValue: "solid",
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Valid values: solid | dashed | dotted | double | none"
+      }
+      /* wwEditor:end */
+    },
+
+    cardShadow: {
+      label: { en: "Card Shadow", de: "Karten-Schatten" },
+      type: "Text",
+      section: "style",
+      defaultValue: "0 1px 3px rgba(0,0,0,0.1)",
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "CSS box-shadow value (e.g., '0 1px 3px rgba(0,0,0,0.1)' or 'none')"
+      }
+      /* wwEditor:end */
+    },
   },
 
   triggerEvents: [
