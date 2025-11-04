@@ -32,9 +32,9 @@ export default {
       /* wwEditor:start */
       bindingValidation: {
         type: "string",
-        tooltip: "Base64-encoded or raw binary string of MP3 audio data"
+        tooltip: "Supports: Base64 strings, Blob objects, ArrayBuffer, data URLs, or blob URLs from Edge Functions"
       },
-      propertyHelp: "Provide a base64-encoded or binary string containing MP3 audio data. This will be used if Audio URL is not provided."
+      propertyHelp: "Audio data from Edge Functions. Supports multiple formats: Base64 string, Blob, ArrayBuffer, data:audio URL, or blob: URL. Used if Audio URL is not provided. Check browser console for format detection logs."
       /* wwEditor:end */
     },
 

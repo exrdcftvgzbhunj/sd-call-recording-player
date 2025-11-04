@@ -455,9 +455,9 @@ export default {
       }
     }
 
-    // Convert binary string to Blob URL
-    function createBlobUrlFromBinaryString(binaryString) {
-      if (!binaryString) return null;
+    // Convert binary string/data to Blob URL
+    function createBlobUrlFromBinaryString(audioInput) {
+      if (!audioInput) return null;
 
       try {
         // Clean up old blob URL if it exists
@@ -466,46 +466,93 @@ export default {
           blobUrl.value = null;
         }
 
-        // Check if it's base64-encoded (starts with data:audio or is pure base64)
-        let audioData;
-
-        if (binaryString.startsWith('data:audio')) {
-          // It's already a data URL, use it directly
-          return binaryString;
-        } else if (binaryString.startsWith('data:')) {
-          // It's a data URL but not audio - try to use it anyway
-          return binaryString;
-        } else {
-          // Try to decode as base64
-          try {
-            const base64Data = binaryString.replace(/^data:audio\/[a-z]+;base64,/, '');
-            const binaryData = atob(base64Data);
-            const arrayBuffer = new Uint8Array(binaryData.length);
-            for (let i = 0; i < binaryData.length; i++) {
-              arrayBuffer[i] = binaryData.charCodeAt(i);
-            }
-            audioData = arrayBuffer;
-          } catch (e) {
-            // If base64 decode fails, treat as raw binary string
-            const arrayBuffer = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              arrayBuffer[i] = binaryString.charCodeAt(i);
-            }
-            audioData = arrayBuffer;
-          }
+        // Handle Blob objects directly (from Edge Functions)
+        if (audioInput instanceof Blob) {
+          console.log('Received Blob object, creating URL');
+          const url = URL.createObjectURL(audioInput);
+          blobUrl.value = url;
+          return url;
         }
 
-        // Create blob and URL if we have array buffer data
-        if (audioData instanceof Uint8Array) {
-          const blob = new Blob([audioData], { type: 'audio/mpeg' });
+        // Handle ArrayBuffer directly (from Edge Functions)
+        if (audioInput instanceof ArrayBuffer || audioInput?.constructor?.name === 'ArrayBuffer') {
+          console.log('Received ArrayBuffer, creating Blob');
+          const blob = new Blob([audioInput], { type: 'audio/mpeg' });
           const url = URL.createObjectURL(blob);
           blobUrl.value = url;
           return url;
         }
 
+        // Handle Uint8Array directly
+        if (audioInput instanceof Uint8Array) {
+          console.log('Received Uint8Array, creating Blob');
+          const blob = new Blob([audioInput], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
+          blobUrl.value = url;
+          return url;
+        }
+
+        // From here on, treat as string
+        const binaryString = String(audioInput);
+
+        // Check if it's already a blob URL
+        if (binaryString.startsWith('blob:')) {
+          console.log('Received blob URL directly');
+          return binaryString;
+        }
+
+        // Check if it's a data URL
+        if (binaryString.startsWith('data:audio') || binaryString.startsWith('data:application')) {
+          console.log('Received data URL, using directly');
+          return binaryString;
+        }
+
+        // Check if it's a regular HTTP(S) URL
+        if (binaryString.startsWith('http://') || binaryString.startsWith('https://')) {
+          console.log('Received HTTP URL, using directly');
+          return binaryString;
+        }
+
+        // Try to decode as base64
+        console.log('Attempting base64 decode, string length:', binaryString.length);
+        let audioData;
+
+        try {
+          // Clean the base64 string (remove any data URL prefix)
+          const base64Data = binaryString.replace(/^data:audio\/[a-z0-9]+;base64,/, '');
+          const binaryData = atob(base64Data);
+
+          console.log('Base64 decoded successfully, length:', binaryData.length);
+
+          const arrayBuffer = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            arrayBuffer[i] = binaryData.charCodeAt(i);
+          }
+          audioData = arrayBuffer;
+        } catch (e) {
+          console.warn('Base64 decode failed, treating as raw binary:', e);
+          // If base64 decode fails, treat as raw binary string
+          const arrayBuffer = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            arrayBuffer[i] = binaryString.charCodeAt(i);
+          }
+          audioData = arrayBuffer;
+        }
+
+        // Create blob and URL if we have array buffer data
+        if (audioData instanceof Uint8Array) {
+          console.log('Creating Blob from Uint8Array, size:', audioData.length);
+          const blob = new Blob([audioData], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
+          blobUrl.value = url;
+          console.log('Created blob URL successfully');
+          return url;
+        }
+
+        console.error('Could not process audio data, unknown format');
         return null;
       } catch (error) {
-        console.error('Error creating blob URL from binary string:', error);
+        console.error('Error creating blob URL from audio data:', error);
         return null;
       }
     }
@@ -525,23 +572,30 @@ export default {
       const url = props.content?.audioUrl;
       const binaryString = props.content?.audioBinaryString;
 
+      console.log('loadAudio called - URL:', !!url, 'Binary:', !!binaryString);
+
       if (url) {
         // Use direct URL
+        console.log('Using direct URL:', url.substring(0, 100));
         audioRef.value.src = url;
         audioRef.value.load();
       } else if (binaryString) {
         // Convert binary string to blob URL
+        console.log('Processing binary string, type:', typeof binaryString, 'instance:', binaryString?.constructor?.name);
         const audioSrc = createBlobUrlFromBinaryString(binaryString);
         if (audioSrc) {
+          console.log('Setting audio source:', audioSrc.substring(0, 100));
           audioRef.value.src = audioSrc;
           audioRef.value.load();
         } else {
+          console.error('Failed to create audio source from binary data');
           hasError.value = true;
-          errorMessage.value = '⚠️ Error processing audio binary data.';
+          errorMessage.value = '⚠️ Error processing audio data. Check browser console for details.';
           isLoading.value = false;
         }
       } else {
         // No audio source provided
+        console.log('No audio source provided');
         isLoading.value = false;
       }
     }
