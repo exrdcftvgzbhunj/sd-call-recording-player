@@ -152,6 +152,7 @@ export default {
     const currentSpeed = ref('1');
     const transcriptVisible = ref(false);
     const currentLineIndex = ref(0);
+    const blobUrl = ref(null);
 
     // Internal Variables (MANDATORY for WeWeb)
     const { value: internalCurrentTime, setValue: setInternalCurrentTime } = wwLib.wwVariable.useComponentVariable({
@@ -454,19 +455,100 @@ export default {
       }
     }
 
-    // Watch for audio URL changes
-    watch(() => props.content?.audioUrl, (newUrl) => {
-      if (audioRef.value && newUrl) {
-        hasError.value = false;
-        errorMessage.value = '';
-        isLoading.value = true;
-        audioReady.value = false;
-        isPlayingState.value = false;
-        currentTime.value = 0;
+    // Convert binary string to Blob URL
+    function createBlobUrlFromBinaryString(binaryString) {
+      if (!binaryString) return null;
 
-        audioRef.value.src = newUrl;
-        audioRef.value.load();
+      try {
+        // Clean up old blob URL if it exists
+        if (blobUrl.value) {
+          URL.revokeObjectURL(blobUrl.value);
+          blobUrl.value = null;
+        }
+
+        // Check if it's base64-encoded (starts with data:audio or is pure base64)
+        let audioData;
+
+        if (binaryString.startsWith('data:audio')) {
+          // It's already a data URL, use it directly
+          return binaryString;
+        } else if (binaryString.startsWith('data:')) {
+          // It's a data URL but not audio - try to use it anyway
+          return binaryString;
+        } else {
+          // Try to decode as base64
+          try {
+            const base64Data = binaryString.replace(/^data:audio\/[a-z]+;base64,/, '');
+            const binaryData = atob(base64Data);
+            const arrayBuffer = new Uint8Array(binaryData.length);
+            for (let i = 0; i < binaryData.length; i++) {
+              arrayBuffer[i] = binaryData.charCodeAt(i);
+            }
+            audioData = arrayBuffer;
+          } catch (e) {
+            // If base64 decode fails, treat as raw binary string
+            const arrayBuffer = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              arrayBuffer[i] = binaryString.charCodeAt(i);
+            }
+            audioData = arrayBuffer;
+          }
+        }
+
+        // Create blob and URL if we have array buffer data
+        if (audioData instanceof Uint8Array) {
+          const blob = new Blob([audioData], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
+          blobUrl.value = url;
+          return url;
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Error creating blob URL from binary string:', error);
+        return null;
       }
+    }
+
+    // Load audio from either URL or binary string
+    function loadAudio() {
+      if (!audioRef.value) return;
+
+      hasError.value = false;
+      errorMessage.value = '';
+      isLoading.value = true;
+      audioReady.value = false;
+      isPlayingState.value = false;
+      currentTime.value = 0;
+
+      // Priority: audioUrl first, then audioBinaryString
+      const url = props.content?.audioUrl;
+      const binaryString = props.content?.audioBinaryString;
+
+      if (url) {
+        // Use direct URL
+        audioRef.value.src = url;
+        audioRef.value.load();
+      } else if (binaryString) {
+        // Convert binary string to blob URL
+        const audioSrc = createBlobUrlFromBinaryString(binaryString);
+        if (audioSrc) {
+          audioRef.value.src = audioSrc;
+          audioRef.value.load();
+        } else {
+          hasError.value = true;
+          errorMessage.value = '⚠️ Error processing audio binary data.';
+          isLoading.value = false;
+        }
+      } else {
+        // No audio source provided
+        isLoading.value = false;
+      }
+    }
+
+    // Watch for audio URL or binary string changes
+    watch(() => [props.content?.audioUrl, props.content?.audioBinaryString], () => {
+      loadAudio();
     }, { immediate: true });
 
     // Watch for initial speed changes
@@ -508,6 +590,11 @@ export default {
       if (audioRef.value) {
         audioRef.value.pause();
         audioRef.value.src = '';
+      }
+      // Clean up blob URL if it exists
+      if (blobUrl.value) {
+        URL.revokeObjectURL(blobUrl.value);
+        blobUrl.value = null;
       }
     });
 

@@ -23,6 +23,21 @@ export default {
       /* wwEditor:end */
     },
 
+    audioBinaryString: {
+      label: { en: "Audio Binary String", de: "Audio-Binärdaten" },
+      type: "Text",
+      section: "settings",
+      bindable: true,
+      defaultValue: "",
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Base64-encoded or raw binary string of MP3 audio data"
+      },
+      propertyHelp: "Provide a base64-encoded or binary string containing MP3 audio data. This will be used if Audio URL is not provided."
+      /* wwEditor:end */
+    },
+
     // Transcript Array (MANDATORY Professional Pattern)
     transcript: {
       label: { en: "Transcript", de: "Transkript" },
