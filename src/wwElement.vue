@@ -196,8 +196,11 @@ export default {
       if (!Array.isArray(transcript) || transcript.length === 0) return [];
 
       const { resolveMappingFormula } = wwLib.wwFormula.useFormula();
+      const defaultDuration = parseFloat(props.content?.defaultSegmentDuration) || 3;
+      const audioDuration = duration.value || 0;
 
-      return transcript.map((item, index) => {
+      // First pass: Extract and map all fields
+      const mappedItems = transcript.map((item, index) => {
         // Use formula mapping only if transcript is bound, otherwise use direct property access
         let time, duration, speaker, text;
 
@@ -210,7 +213,7 @@ export default {
         // Use mapped values if they exist and are not null/undefined, otherwise fall back to direct access
         // Support both 'time' and 'start_time' field names for flexibility
         time = (mappedTime !== null && mappedTime !== undefined) ? mappedTime : (item?.time ?? item?.start_time ?? 0);
-        duration = (mappedDuration !== null && mappedDuration !== undefined) ? mappedDuration : (item?.duration ?? 5);
+        duration = (mappedDuration !== null && mappedDuration !== undefined) ? mappedDuration : item?.duration;
         speaker = (mappedSpeaker !== null && mappedSpeaker !== undefined && mappedSpeaker !== '') ? mappedSpeaker : (item?.speaker ?? 'agent');
         text = (mappedText !== null && mappedText !== undefined && mappedText !== '') ? mappedText : (item?.text ?? '');
 
@@ -223,7 +226,7 @@ export default {
 
         return {
           time: timeValue,
-          duration: parseFloat(duration) || 5,
+          duration: duration !== null && duration !== undefined ? parseFloat(duration) : null,
           speaker: String(speaker).toLowerCase(),
           text: String(text),
           color: speakerColors[String(speaker).toLowerCase()] || speakerColors.agent,
@@ -231,6 +234,32 @@ export default {
           originalItem: item,
         };
       }).sort((a, b) => a.time - b.time);
+
+      // Second pass: Calculate missing durations automatically
+      return mappedItems.map((item, index) => {
+        let calculatedDuration = item.duration;
+
+        // If duration is not provided, calculate it automatically
+        if (calculatedDuration === null || calculatedDuration === undefined || isNaN(calculatedDuration)) {
+          const nextItem = mappedItems[index + 1];
+
+          if (nextItem) {
+            // Calculate duration until next segment starts
+            calculatedDuration = Math.max(0.1, nextItem.time - item.time);
+          } else if (audioDuration > 0 && item.time < audioDuration) {
+            // For last segment: use remaining audio duration
+            calculatedDuration = audioDuration - item.time;
+          } else {
+            // Fallback to default duration
+            calculatedDuration = defaultDuration;
+          }
+        }
+
+        return {
+          ...item,
+          duration: calculatedDuration,
+        };
+      });
     });
 
     // Process segments for progress bar
@@ -317,7 +346,7 @@ export default {
     function handleAudioError(e) {
       console.error('Audio Error:', e);
       hasError.value = true;
-      errorMessage.value = '⚠️ Error loading audio file. Please check the URL.';
+      errorMessage.value = props.content?.errorText || '⚠️ Error loading audio file. Please check the source.';
       isLoading.value = false;
       audioReady.value = false;
     }
@@ -382,7 +411,7 @@ export default {
         audioRef.value.play().catch(err => {
           console.error('Playback error:', err);
           hasError.value = true;
-          errorMessage.value = '⚠️ Error playing audio. The audio file could not be loaded.';
+          errorMessage.value = props.content?.errorText || '⚠️ Error loading audio file. Please check the source.';
         });
       }
     }
@@ -590,7 +619,7 @@ export default {
         } else {
           console.error('Failed to create audio source from binary data');
           hasError.value = true;
-          errorMessage.value = '⚠️ Error processing audio data. Check browser console for details.';
+          errorMessage.value = props.content?.errorText || '⚠️ Error loading audio file. Please check the source.';
           isLoading.value = false;
         }
       } else {

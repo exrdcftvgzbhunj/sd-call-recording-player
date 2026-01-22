@@ -45,8 +45,9 @@ export default {
       section: "settings",
       bindable: true,
       defaultValue: [
-        { time: 0, duration: 3, speaker: "agent", text: "Agent: Hello, how can I help you?" },
-        { time: 3, duration: 5, speaker: "customer", text: "Customer: I need support with my account." }
+        { time: 0, speaker: "agent", text: "Agent: Hello, how can I help you?" },
+        { time: 3, speaker: "customer", text: "Customer: I need support with my account." },
+        { time: 8, speaker: "agent", text: "Agent: I'd be happy to help you with that." }
       ],
       options: {
         expandable: true,
@@ -57,18 +58,13 @@ export default {
         },
         item: {
           type: "Object",
-          defaultValue: { time: 0, duration: 5, speaker: "agent", text: "New transcript line" },
+          defaultValue: { time: 0, speaker: "agent", text: "New transcript line" },
           options: {
             item: {
               time: {
                 label: { en: "Start Time (seconds)", de: "Startzeit (Sekunden)" },
                 type: "Number",
                 defaultValue: 0
-              },
-              duration: {
-                label: { en: "Duration (seconds)", de: "Dauer (Sekunden)" },
-                type: "Number",
-                defaultValue: 5
               },
               speaker: {
                 label: { en: "Speaker", de: "Sprecher" },
@@ -87,9 +83,9 @@ export default {
       /* wwEditor:start */
       bindingValidation: {
         type: "array",
-        tooltip: "Array of transcript segments with time, duration, speaker, and text"
+        tooltip: "Array of transcript segments with time, speaker, and text. Duration is calculated automatically."
       },
-      propertyHelp: "Add transcript segments with timestamps. Each segment needs: time (seconds), duration (seconds), speaker (agent/customer), and text"
+      propertyHelp: "Add transcript segments with timestamps. Each segment needs: time (seconds), speaker (agent/customer), and text. Duration is automatically calculated from time differences."
       /* wwEditor:end */
     },
 
@@ -111,27 +107,6 @@ export default {
       bindingValidation: {
         type: "number",
         tooltip: "Start time in seconds for this transcript segment (supports 'time' or 'start_time' fields)"
-      }
-      /* wwEditor:end */
-    },
-
-    transcriptDurationFormula: {
-      label: { en: "Duration Field", de: "Dauerfeld" },
-      type: "Formula",
-      section: "settings",
-      options: content => ({
-        template: Array.isArray(content.transcript) && content.transcript.length > 0 ? content.transcript[0] : null,
-      }),
-      defaultValue: {
-        type: "f",
-        code: "context.mapping?.['duration']",
-      },
-      hidden: (content, sidepanelContent, boundProps) =>
-        !Array.isArray(content.transcript) || !content.transcript?.length || !boundProps.transcript,
-      /* wwEditor:start */
-      bindingValidation: {
-        type: "number",
-        tooltip: "Duration in seconds for this transcript segment"
       }
       /* wwEditor:end */
     },
@@ -288,6 +263,21 @@ export default {
       /* wwEditor:end */
     },
 
+    defaultSegmentDuration: {
+      label: { en: "Default Segment Duration", de: "Standard-Segmentdauer" },
+      type: "Number",
+      section: "settings",
+      defaultValue: 3,
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "number",
+        tooltip: "Fallback duration in seconds when duration is not provided and cannot be calculated"
+      },
+      propertyHelp: "Used for the last segment or when duration cannot be automatically calculated from timestamps. Duration is auto-calculated between segments when not provided."
+      /* wwEditor:end */
+    },
+
     // UI Text Customization
     loadingText: {
       label: { en: "Loading Text", de: "Ladetext" },
@@ -295,6 +285,21 @@ export default {
       section: "settings",
       defaultValue: "⏳ Loading audio...",
       bindable: true,
+    },
+
+    errorText: {
+      label: { en: "Error Message", de: "Fehlermeldung" },
+      type: "Text",
+      section: "settings",
+      defaultValue: "⚠️ Error loading audio file. Please check the source.",
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: "string",
+        tooltip: "Error message shown when audio fails to load or play"
+      },
+      propertyHelp: "Customize the error message displayed when audio cannot be loaded or played"
+      /* wwEditor:end */
     },
 
     speedLabel: {
